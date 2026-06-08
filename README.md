@@ -9,7 +9,7 @@ Mix-and-match modules for ~1.5 hour customer workshops. Pick 2-3 modules, run th
 | **0** | Fleet — slide intro + open the Fleet UI | ~10 min | `modules/00_fleet.ipynb` |
 | **1** | LangGraph 201 — Research agent from scratch (state, nodes, edges, `create_agent` + middleware, supervisor, memory) | ~45 min | `modules/01_langgraph.ipynb` |
 | **2** | Deep Agents — Harness, Tools, Subagents, Memory, Middleware, HITL, Skills | ~45 min | `modules/02_deep_agents.ipynb` |
-| **3** | Deploy — `langgraph` CLI + LangSmith Deployments | ~15 min | `modules/03_deploy.ipynb` |
+| **3** | Deploy + Govern — LangSmith Gateway policies (PII/secrets) + `langgraph` CLI + LangSmith Deployments | ~25 min | `modules/03_deploy_and_govern.ipynb` |
 | **4** | LangSmith — Tracing, querying traces, offline + online evals, annotation queues | ~30 min | `modules/04_langsmith.ipynb` |
 
 Each module is a standalone Jupyter notebook. Modules share the project's setup, `utils/`, and `agents/` so combining them is as simple as opening multiple notebooks in order.
@@ -23,17 +23,17 @@ Includes an OSS primer and a LangSmith primer in case background is needed for t
 A few starting points you can run as-is or remix.
 
 ### Recipe A — "Production-ready agents" (Module 2 + 3 + 4)
-**90 min · matches the Capital One workshop.** Build a deep agent, ship it to LangSmith Deployments, then evaluate it.
+**~100 min · matches the Capital One workshop.** Build a deep agent, govern + ship it to LangSmith Deployments, then evaluate it.
 
 1. Module 2 — Deep Agents (45 min)
-2. Module 3 — Deploy (15 min)
+2. Module 3 — Deploy + Govern (25 min)
 3. Module 4 — LangSmith (30 min)
 
 ### Recipe B — "LangGraph foundations in Production" (Module 1 + 3 + 4)
-**90 min.** For teams new to LangChain who want to understand multi-agent design and use it in production.
+**~100 min.** For teams new to LangChain who want to understand multi-agent design and use it in production.
 
 1. Module 1 — LangGraph 201 (45 min)
-2. Module 3 - Deploy (15 min)
+2. Module 3 — Deploy + Govern (25 min)
 3. Module 4 — LangSmith (30 min)
 
 ### Recipe C — "LangGraph to Deep Agents" (Module 1 + 2)
@@ -43,10 +43,10 @@ A few starting points you can run as-is or remix.
 2. Module 2 — Deep Agents (45 min)
 
 ### Recipe D — "Ship it" (Module 2 + 3)
-**60 min.** Quick "build + deploy" demo for teams who already know LangSmith.
+**~70 min.** Quick "build + govern + deploy" demo for teams who already know LangSmith.
 
 1. Module 2 — Deep Agents (45 min)
-2. Module 3 — Deploy (15 min)
+2. Module 3 — Deploy + Govern (25 min)
 
 ## Prerequisites
 
@@ -68,6 +68,7 @@ cp .env.example .env
 |-----|--------------|---------|
 | `OPENAI_API_KEY` | Modules 1-4 (default model) | <https://platform.openai.com> |
 | `LANGSMITH_API_KEY` | Modules 3 & 4 (recommended for all) | <https://smith.langchain.com> |
+| `LANGSMITH_API_KEY_GATEWAY` / `WORKSPACE_ID` | Module 3 §1 (LangSmith Gateway policies) | same key as `LANGSMITH_API_KEY`; workspace ID from LangSmith Settings → Workspace |
 | `TAVILY_API_KEY` | Modules 2 & 3 (web search tool) | <https://tavily.com> |
 
 ```bash
@@ -99,11 +100,15 @@ model = init_chat_model("openai:gpt-4.1-mini")
 # model = ChatBedrockConverse(provider="anthropic", model_id="...")
 ```
 
-## Deploy (Module 3)
+`utils/models.py` also ships a commented-out **LangSmith Gateway** block. Module 3 §1.4 walks through flipping the default to it so every model call (notebooks *and* the deployed agent) is routed through the gateway and subject to workspace policies.
 
-Module 3 deploys the agent at `agents/deep_agent/` to LangSmith via the `langgraph` CLI (installed by `uv sync`). The deploy config is `langgraph.json` at the workshop root.
+## Deploy + Govern (Module 3)
 
-Your `LANGSMITH_API_KEY` must have deployment permissions (use a `lsv2_sk_...` service key).
+Module 3 first creates a workspace-level **LangSmith Gateway** policy (PII / secrets redaction), routes the model through the gateway, then deploys the agent at `agents/deep_agent/` to LangSmith via the `langgraph` CLI (installed by `uv sync`). The deploy config is `langgraph.json` at the workshop root.
+
+Because `agents/deep_agent/agent.py` imports `model` from `utils.models`, whichever block is active in `utils/models.py` at deploy time is what ships — flip on the gateway block and the deployed agent inherits it with no extra flags.
+
+Your `LANGSMITH_API_KEY` must have deployment permissions (use a `lsv2_sk_...` service key). The gateway block reads `LANGSMITH_API_KEY_GATEWAY` (the same key under a non-reserved name, since `langgraph deploy` strips `LANGSMITH_API_KEY` during upload).
 
 ## Project Structure
 
@@ -116,7 +121,7 @@ modular-workshops/
 ├── utils/
 ├── agents/
 │   ├── research_agent.py           (shared agent factory — Module 2 references, Module 4 imports for eval)
-│   └── deep_agent/                 (deployable agent for Module 3)
+│   └── deep_agent/                 (deployable + governed agent for Module 3)
 │       ├── agent.py
 │       ├── AGENTS.md
 │       └── skills/
@@ -126,7 +131,7 @@ modular-workshops/
 └── modules/
     ├── 01_langgraph.ipynb          (Module 1)
     ├── 02_deep_agents.ipynb        (Module 2)
-    ├── 03_deploy.ipynb             (Module 3)
+    ├── 03_deploy_and_govern.ipynb  (Module 3)
     └── 04_langsmith.ipynb          (Module 4)
 ```
 
