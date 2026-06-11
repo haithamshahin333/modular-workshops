@@ -1,52 +1,8 @@
 # Modular Workshops
 
-Mix-and-match modules for ~1.5 hour customer workshops. Pick 2-3 modules, run them in order, you're done.
+This repository contains hands-on tutorials for learning LangChain, LangGraph, and Deep Agents.
 
-## The Modules
-
-| # | Module | Duration | Notebook |
-|---|--------|----------|----------|
-| **0** | Fleet — slide intro + open the Fleet UI | ~10 min | `modules/00_fleet.ipynb` |
-| **1** | LangGraph 201 — Research agent from scratch (state, nodes, edges, `create_agent` + middleware, supervisor, memory) | ~45 min | `modules/01_langgraph.ipynb` |
-| **2** | Deep Agents — Harness, Tools, Subagents, Memory, Middleware, HITL, Skills | ~45 min | `modules/02_deep_agents.ipynb` |
-| **3** | Deploy — `langgraph` CLI + LangSmith Deployments | ~15 min | `modules/03_deploy.ipynb` |
-| **4** | LangSmith — Tracing, querying traces, offline + online evals, annotation queues | ~30 min | `modules/04_langsmith.ipynb` |
-
-Each module is a standalone Jupyter notebook. Modules share the project's setup, `utils/`, and `agents/` so combining them is as simple as opening multiple notebooks in order.
-
-## Slides
-Companion slide deck for all modules: see `slides/README.md` for the links.
-Includes an OSS primer and a LangSmith primer in case background is needed for the audience
-
-## Workshop Recipes (~90 min)
-
-A few starting points you can run as-is or remix.
-
-### Recipe A — "Production-ready agents" (Module 2 + 3 + 4)
-**90 min · matches the Capital One workshop.** Build a deep agent, ship it to LangSmith Deployments, then evaluate it.
-
-1. Module 2 — Deep Agents (45 min)
-2. Module 3 — Deploy (15 min)
-3. Module 4 — LangSmith (30 min)
-
-### Recipe B — "LangGraph foundations in Production" (Module 1 + 3 + 4)
-**90 min.** For teams new to LangChain who want to understand multi-agent design and use it in production.
-
-1. Module 1 — LangGraph 201 (45 min)
-2. Module 3 - Deploy (15 min)
-3. Module 4 — LangSmith (30 min)
-
-### Recipe C — "LangGraph to Deep Agents" (Module 1 + 2)
-**90 min.** Same research agent, two ways: built by hand in LangGraph, then in ~10 lines with `create_deep_agent()`. Strongest A/B teaching arc.
-
-1. Module 1 — LangGraph 201 (45 min)
-2. Module 2 — Deep Agents (45 min)
-
-### Recipe D — "Ship it" (Module 2 + 3)
-**60 min.** Quick "build + deploy" demo for teams who already know LangSmith.
-
-1. Module 2 — Deep Agents (45 min)
-2. Module 3 — Deploy (15 min)
+This is a condensed version of LangChain Academy, intended to be run in a session with a LangChain engineer. If you're interested in going into more depth, or working through tutorials on your own, check out [LangChain Academy](https://academy.langchain.com/courses/intro-to-langgraph)! LangChain Academy has helpful pre-recorded videos from our LangChain engineers.
 
 ## Prerequisites
 
