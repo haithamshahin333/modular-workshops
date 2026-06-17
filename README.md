@@ -98,3 +98,6 @@ Your API key is a personal token. Generate a service key (`lsv2_sk_...`) in Lang
 
 **Notebook can't find `utils` / `agents`**
 Each module's setup cell prepends `project_root` (the workshop root) to `sys.path`. If you moved a notebook, update the `Path().resolve().parent` line to point at the workshop root.
+
+## For LangChain Internal Users
+Please refer to this linked [Notion document](https://app.notion.com/p/Modular-Workshops-37d808527b1780318063fd210446aa03?source=copy_link) for instructions on setup and usage.
