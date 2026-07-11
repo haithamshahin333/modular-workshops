@@ -2,10 +2,6 @@
 .env
 .env.local
 .env.*.local
-*.pem
-*.key
-*.crt
-credentials.json
 
 # Python
 __pycache__/
@@ -21,7 +17,6 @@ dist/
 venv/
 env/
 .python-version
-node_modules/
 
 # Jupyter
 .ipynb_checkpoints/
