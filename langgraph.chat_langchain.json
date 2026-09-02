@@ -1,0 +1,12 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "rag_workflow": "./agents/chat_langchain/rag_workflow.py:graph",
+    "chat_deep_agent": "./agents/chat_langchain/deep_agent.py:make_graph"
+  },
+  "http": {
+    "app": "./agents/chat_langchain/webapp.py:app"
+  },
+  "env": ".env",
+  "image_distro": "wolfi"
+}

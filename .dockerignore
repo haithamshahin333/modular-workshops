@@ -15,3 +15,7 @@ credentials.json
 **/.ipynb_checkpoints/
 __pycache__/
 **/__pycache__/
+# Workshop material is not needed inside the agent image.
+modules/
+images/
+docs/

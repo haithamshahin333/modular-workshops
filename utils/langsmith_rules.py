@@ -8,8 +8,17 @@ LangSmith supports two related automations on a tracing project:
    queue for a human to review.
 
 Both are configured as "rules" against a project. The LangSmith Python SDK
-doesn't expose a high-level API for them, so we call the REST endpoint
-directly. `create_run_rule` returns a deep link to the rule's page in the UI.
+exposes workspace-level *evaluators* (`client.evaluators.create`, used in
+Module 6) but not the rule that attaches one to a project, so we call the
+`/runs/rules` REST endpoint directly. `create_run_rule` returns a deep link to
+the rule's page in the UI.
+
+Ways to score runs with a rule (pick one per call):
+  - `llm_judge_prompt` + `llm_judge_schema` -- inline LLM-as-judge (Module 4)
+  - `evaluator_id`                          -- attach an SDK-created evaluator (Module 6)
+  - `code_evaluators`                       -- inline Python code evaluator(s)
+  - `add_to_annotation_queue_id`            -- route matching runs to a queue
+Set `group_by="thread_id"` to evaluate whole conversation threads instead of runs.
 """
 
 from __future__ import annotations
@@ -111,12 +120,21 @@ def create_run_rule(
     llm_judge_model: str = "gpt-5.6-luna",
     # If set: route matching runs to this annotation queue.
     add_to_annotation_queue_id: Optional[Union[str, UUID]] = None,
+    # If set: attach a workspace evaluator created with `client.evaluators.create`.
+    evaluator_id: Optional[Union[str, UUID]] = None,
+    # If set: inline Python code evaluator(s); each must define `perform_eval(run, example)`.
+    code_evaluators: Optional[Sequence[str]] = None,
+    # "thread_id" makes this a thread-level (multi-turn) rule; None = per-run.
+    group_by: Optional[str] = None,
+    # Expose `feedback_stats`, `total_tokens`, `total_cost` on the run passed to evaluators.
+    include_extended_stats: bool = False,
 ) -> dict:
     """Create or replace a run rule on a tracing project.
 
     Returns a dict with `id`, `url` (deep link to the rule in the UI), and the
-    raw `payload` LangSmith stored. Either `llm_judge_prompt` (+schema), or
-    `add_to_annotation_queue_id`, or both, should be provided.
+    raw `payload` LangSmith stored. Provide at least one action:
+    `llm_judge_prompt` (+schema), `evaluator_id`, `code_evaluators`, or
+    `add_to_annotation_queue_id`.
     """
     project = client.read_project(project_name=project_name)
 
@@ -139,6 +157,19 @@ def create_run_rule(
     }
     if add_to_annotation_queue_id is not None:
         body["add_to_annotation_queue_id"] = str(add_to_annotation_queue_id)
+    if evaluator_id is not None:
+        body["evaluator_id"] = str(evaluator_id)
+    if code_evaluators:
+        body["code_evaluators"] = [{"code": code, "language": "python"} for code in code_evaluators]
+    if group_by is not None:
+        body["group_by"] = group_by
+    if include_extended_stats:
+        body["include_extended_stats"] = True
+    if not any((evaluators, evaluator_id, code_evaluators, add_to_annotation_queue_id)):
+        raise ValueError(
+            "create_run_rule needs an action: llm_judge_prompt, evaluator_id, "
+            "code_evaluators, or add_to_annotation_queue_id"
+        )
 
     headers = {
         "x-api-key": client.api_key,
@@ -195,5 +226,36 @@ def delete_run_rule(client: Client, rule_id: Union[str, UUID]) -> None:
     headers = {"x-api-key": client.api_key, "accept": "application/json"}
     response = requests.delete(
         f"{client.api_url}/runs/rules/{rule_id}", headers=headers, timeout=15,
+    )
+    response.raise_for_status()
+
+
+def list_run_rules(client: Client, project_name: str) -> list[dict]:
+    """List the rules (online evaluators + automations) on a tracing project."""
+    project = client.read_project(project_name=project_name)
+    response = requests.get(
+        f"{client.api_url}/runs/rules",
+        params={"session_id": str(project.id)},
+        headers={"x-api-key": client.api_key, "accept": "application/json"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def set_annotation_queue_default_dataset(
+    client: Client, queue_id: Union[str, UUID], dataset_id: Union[str, UUID]
+) -> None:
+    """Point a queue's "Add to Dataset" action at a dataset.
+
+    The SDK's `create_annotation_queue` doesn't take `default_dataset`, so this
+    PATCHes the queue directly. Reviewers who write assertions on a run and click
+    "Add to Dataset & Next" land their examples in this dataset.
+    """
+    response = requests.patch(
+        f"{client.api_url}/annotation-queues/{queue_id}",
+        json={"default_dataset": str(dataset_id)},
+        headers={"x-api-key": client.api_key, "content-type": "application/json", "accept": "application/json"},
+        timeout=30,
     )
     response.raise_for_status()

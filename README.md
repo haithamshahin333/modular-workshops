@@ -26,6 +26,7 @@ cp .env.example .env
 | `LANGSMITH_API_KEY` | Modules 3 & 4 (recommended for all) | <https://smith.langchain.com> |
 | `LANGSMITH_API_KEY_GATEWAY` / `WORKSPACE_ID` | Module 3 §1 (LangSmith Gateway policies) | same key as `LANGSMITH_API_KEY`; workspace ID from LangSmith Settings → Workspace |
 | `TAVILY_API_KEY` | Modules 1 & 3 (web search tool) | <https://tavily.com> |
+| `OPENAI_API_KEY` as a LangSmith **workspace secret** | Modules 4 & 6 (online LLM judges, Insights) | LangSmith Settings → Secrets |
 
 ```bash
 # 3. Start Jupyter
@@ -66,6 +67,20 @@ Because `agents/deep_agent/agent.py` imports `model` from `utils.models`, whiche
 
 Your `LANGSMITH_API_KEY` must have deployment permissions (use a `lsv2_sk_...` service key). The gateway block reads `LANGSMITH_API_KEY_GATEWAY` (the same key under a non-reserved name, since `langgraph deploy` strips `LANGSMITH_API_KEY` during upload).
 
+## Chat LangChain — the full ADLC (Module 6)
+
+Module 6 builds two "chat with the LangChain docs" agents on the public [LangChain docs MCP servers](https://docs.langchain.com/use-these-docs) — a deterministic **LangGraph RAG workflow** and an agentic **Deep Agent** — and takes them through the whole lifecycle: deploy (one deployment, both graphs, a chat page packaged in the server at `/chat`), online evaluators set up from the SDK (run-level LLM judge, code evaluator, thread-level judge, chained evaluator with extended stats), an automation into an annotation queue where reviewers write **assertions**, an offline evaluation graded against those claims plus a pairwise comparison, and an Insights report created and scheduled from code.
+
+The agents live in `agents/chat_langchain/`; the deploy config is `langgraph.chat_langchain.json` (separate from Module 3's `langgraph.json`):
+
+```bash
+langgraph validate --config langgraph.chat_langchain.json
+langgraph dev --config langgraph.chat_langchain.json          # Studio + http://localhost:2024/chat
+langgraph deploy --config langgraph.chat_langchain.json --name modular-workshops-chat-langchain
+```
+
+Needs a service key for deploying, an `OPENAI_API_KEY` workspace secret in LangSmith for the online judges, and a Plus/Enterprise plan for the Insights section (the rest of the module runs without it).
+
 ## Engine (Module 5)
 
 Module 5 introduces **LangSmith Engine** — it reads your deployed agent's production traces, clusters recurring failures into issues, diagnoses the root cause against your connected source code, and proposes fixes as GitHub PRs. It runs on the Module 3 deployment, driven through an *assistant* (a saved graph configuration) that swaps in a deliberately broken search tool so Engine has a clear, reproducible issue to find.
@@ -80,27 +95,39 @@ modular-workshops/
 ├── pyproject.toml                  (shared dependencies)
 ├── .env.example
 ├── langgraph.json                  (registers agents/deep_agent for langgraph dev)
+├── langgraph.chat_langchain.json   (Module 6: both chat_langchain graphs + the /chat page)
 ├── utils/
 ├── agents/
 │   ├── research_agent.py           (shared agent factory — Module 1 references, Module 4 imports for eval)
-│   └── deep_agent/                 (deployable + governed agent for Module 3)
-│       ├── agent.py
+│   ├── deep_agent/                 (deployable + governed agent for Module 3)
+│   │   ├── agent.py
+│   │   ├── AGENTS.md
+│   │   └── skills/
+│   │       ├── linkedin-post/SKILL.md
+│   │       └── twitter-post/SKILL.md
+│   └── chat_langchain/             (Module 6: two docs-chat agents on the LangChain MCP servers)
+│       ├── mcp_tools.py            (shared MCP tool loader)
+│       ├── rag_workflow.py         (LangGraph workflow, graph id `rag_workflow`)
+│       ├── deep_agent.py           (Deep Agent factory, graph id `chat_deep_agent`)
 │       ├── AGENTS.md
-│       └── skills/
-│           ├── linkedin-post/SKILL.md
-│           └── twitter-post/SKILL.md
+│       ├── webapp.py + ui/         (FastAPI route serving the packaged chat page at /chat)
 ├── images/                         (diagrams used by the notebooks)
 └── modules/
     ├── 01_deep_agents.ipynb        (Module 1)
     ├── 02_langgraph.ipynb          (Module 2)
     ├── 03_deploy_and_govern.ipynb  (Module 3)
-    └── 04_langsmith.ipynb          (Module 4)
+    ├── 04_langsmith.ipynb          (Module 4)
+    ├── 05_engine.ipynb             (Module 5)
+    └── 06_chat_langchain_adlc.ipynb (Module 6)
 ```
 
 ## Common Issues
 
 **`langgraph deploy` fails with 403 / permission denied**
 Your API key is a personal token. Generate a service key (`lsv2_sk_...`) in LangSmith settings.
+
+**Module 6: `langgraph dev` says "No such option '-c'"**
+`dev` only accepts the long form: `langgraph dev --config langgraph.chat_langchain.json`.
 
 **Notebook can't find `utils` / `agents`**
 Each module's setup cell prepends `project_root` (the workshop root) to `sys.path`. If you moved a notebook, update the `Path().resolve().parent` line to point at the workshop root.
