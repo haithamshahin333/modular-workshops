@@ -16,7 +16,7 @@ from deepagents import create_deep_agent
 from langchain_core.runnables import RunnableConfig
 
 from agents.chat_langchain.mcp_tools import DOCS_TOOLS, REFERENCE_TOOLS, get_mcp_tools, select_tools
-from utils.models import model
+from utils.models import model as default_model
 
 AGENT_DIR = Path(__file__).resolve().parent
 
@@ -41,12 +41,17 @@ API_REFERENCE_SUBAGENT = {
 }
 
 
-def build_agent(tools: dict, *, checkpointer=None):
-    """Assemble the Deep Agent from already-loaded MCP tools."""
+def build_agent(tools: dict, *, checkpointer=None, model=None, system_prompt=None):
+    """Assemble the Deep Agent from already-loaded MCP tools.
+
+    `model` and `system_prompt` default to the shared model and ``AGENTS.md``. Pass
+    either to build a variant for an A/B experiment (Module 6 §5.6) without touching
+    the deployed graph, which always uses the defaults via ``make_graph``.
+    """
     return create_deep_agent(
-        model=model,
+        model=model or default_model,
         tools=select_tools(tools, DOCS_TOOLS),
-        system_prompt=SYSTEM_PROMPT,
+        system_prompt=system_prompt or SYSTEM_PROMPT,
         subagents=[{**API_REFERENCE_SUBAGENT, "tools": select_tools(tools, REFERENCE_TOOLS)}],
         checkpointer=checkpointer,
     )
@@ -58,6 +63,10 @@ async def make_graph(config: RunnableConfig):
     return build_agent(await get_mcp_tools())
 
 
-async def make_local_agent(checkpointer=None):
-    """Notebook helper: same agent, with an in-memory checkpointer for multi-turn threads."""
-    return build_agent(await get_mcp_tools(), checkpointer=checkpointer)
+async def make_local_agent(checkpointer=None, *, model=None, system_prompt=None):
+    """Notebook helper: same agent, with an in-memory checkpointer for multi-turn threads.
+
+    `model` / `system_prompt` are the variant knobs; see ``build_agent``.
+    """
+    return build_agent(await get_mcp_tools(), checkpointer=checkpointer,
+                       model=model, system_prompt=system_prompt)
