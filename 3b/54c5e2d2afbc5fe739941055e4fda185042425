@@ -1,0 +1,14 @@
+.devcontainer/devcontainer.json
+  h_2ce1fc5d409307 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3b54c5e2d2afbc5fe739941055e4fda185042425",
+  "prompts": {},
+  "humans": {
+    "h_2ce1fc5d409307": {
+      "author": "haithamshahin333 <42976403+haithamshahin333@users.noreply.github.com>"
+    }
+  }
+}
